@@ -15,5 +15,13 @@ jobs:
       # 역시 name은 생략가능하나 action에서 표현될 이름이기에 명시적으로 적어주는 것을 추천
       - name:
           step1
-          # run이라는 키워드를 사용해서 실행할 커맨드를 지정한다. 이 workflow는 push event가 발생됐을 때 트리거되어 push-job이라는 이름의 job이 실행이 되고 첫 번째 step의 echo hello world를 출력하고 종료될 것이다
+          # run이라는 키워드를 사용해서 실행할 커맨드를 지정한다.
+          # 이 workflow는 push event가 발생됐을 때 트리거되어 push-job이라는 이름의 job이 실행이 되고
+          # 첫 번째 step의 echo hello world를 출력하고 종료될 것이다
         run: echo hello world
+      - name:
+          step2
+          # | 는 멀티라인 커맨드를 가능케하는 커맨드이다.
+        run: |
+          echo hello world
+          echo github action
