@@ -1,0 +1,45 @@
+name: workflow-dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "set name"
+        required: true
+        default: "github-actions"
+        type: string
+      environment:
+        description: "set env"
+        required: true
+        default: "dev"
+        type: choice
+        # type을 choice로 했을 때 options 사용해서 선택지 제공
+        options:
+          - dev
+          - qa
+          - prod
+
+# jobs는 실행시킬 job의 집합이다.
+jobs:
+  # 이 job을 실행시킬 runner를 지정하려면 runs-on라는 키워드를 이용해야 된다.
+  workflow-dispatch-job:
+    # 이 workflow-dispatch-job은 ubuntu 머신에서 실행된다는 뜻
+    runs-on: ubuntu-latest
+    # 이 workflow-dispatch-job에서 실행할 step을 정의한다.
+    steps:
+      # 역시 name은 생략가능하나 action에서 표현될 이름이기에 명시적으로 적어주는 것을 추천
+      - name:
+          step1
+          # run이라는 키워드를 사용해서 실행할 커맨드를 지정한다.
+          # 이 workflow는 workflow-dispatch event가 발생됐을 때 트리거되어 workflow-dispatch-job이라는 이름의 job이 실행이 되고
+          # 첫 번째 step의 echo hello world를 출력하고 종료될 것이다
+        run: echo hello world
+      - name:
+          step2
+          # | 는 멀티라인 커맨드를 가능케하는 커맨드이다.
+        run: |
+          echo hello world
+          echo github action
+      - name: step3 echo inputs
+        run: |
+          echo ${{ inputs.name }}
+          echo ${{ inputs.environment }}
