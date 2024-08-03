@@ -1,0 +1,22 @@
+name: output
+on: push
+
+jobs:
+  create-output:
+    runs-on: ubuntu-latest
+    steps:
+      # 1번째 step에서 key는 test이고 value는 hello인 output을 만들었다.
+      - name: echo output
+        id: check-output
+        run: |
+          echo "test=hello" >> $GITHUB_OUTPUT
+      # 2번째 step에서 key는 test이고 value는 hello2인 output을 만들었다.
+      - name: echo output
+        id: check-output2
+        run: |
+          echo "test=hello" >> $GITHUB_OUTPUT
+      # 3번째 step에서는 1,2번째 step에서 만든 output을 출력한다.
+      - name: check output
+        run: |
+          echo ${{ steps.check-output.outputs.test }}
+          echo ${{ steps.check-output2.outputs.test }}
