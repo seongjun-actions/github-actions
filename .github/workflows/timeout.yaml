@@ -1,0 +1,22 @@
+name: timeout
+on: push
+
+jobs:
+  timeout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: loop
+        run: |
+          count=0
+          while true; do
+              echo "seconds: $count"
+              count=$((count+1))
+              sleep 1
+          done
+        # 아래처럼 step 자체에도 timeout을 부여할 수 있다. 현재는 job에 걸려있는 timeout 2분에 의존한다.
+        # timeout-minutes: 1
+
+      # 위 step 1은 무한 반복문이고, 해당 job은 2분의 timeout이 걸려 있어 step 2는 실행되지 않는다.
+      - name: echo
+        run: echo hello
