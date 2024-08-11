@@ -1,0 +1,28 @@
+name: string-function
+on: push
+
+jobs:
+  string-function:
+    runs-on: ubuntu-latest
+    steps:
+      - name: startsWith
+        if: startsWith('github actions','git')
+        run: echo "startsWith git"
+      - name: startsWith
+        if: startsWith('github actions','test')
+        run: echo "startsWith test"
+
+      - name: endsWith
+        if: endsWith('github actions','ions')
+        run: echo "endsWith ions"
+      - name: endsWith
+        if: endsWith('github actions','test')
+        run: echo "endsWith test"
+
+      - name: contains
+        if: contains('github actions','act')
+        run: echo "contains act"
+      - name: contains
+        # , 로 배열 아이템 구분
+        if: contains('github, actions','git')
+        run: echo "contains test"
