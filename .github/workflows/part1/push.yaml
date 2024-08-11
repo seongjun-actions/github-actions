@@ -24,4 +24,4 @@ jobs:
           # | 는 멀티라인 커맨드를 가능케하는 커맨드이다.
         run: |
           echo hello world
-          echo github action
+          echo github action test for not trigger

@@ -1,0 +1,31 @@
+name: artifact
+on: push
+
+jobs:
+  upload-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      # echo step을 통해 hello-world라는 텍스트를 hello.txt에 저장한다.
+      - name: echo
+        run: echo hello-world > hello.txt
+        # 위 step에서 생성된 hello.txt를 artifact-test라는 이름의 artifact로 업로드한다.
+      - name: upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifact-test
+          path: ./hello.txt
+
+  download-artifact:
+    runs-on: ubuntu-latest
+    # upload artifact job이 끝나야 download도 할 수 있으니, upload-artifact job에 종속성을 가지도록 needs를 설정한다.
+    needs: [upload-artifact]
+    steps:
+      # 업로드했던 artifact-test라는 이름의 artifact를 다운로드한다. 루트 경로에 다운로드되도록 ./로 path를 설정함
+      - name: download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: artifact-test
+          path: ./
+      # 다운로드 받은 artifact-test의 hello.txt를 읽는다
+      - name: check
+        run: cat hello.txt
