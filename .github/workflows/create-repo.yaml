@@ -26,6 +26,35 @@ jobs:
         run: |
           echo ${{ secrets.PERSONAL_ACCESS_TOKEN }} | gh auth login --with-token
       - name: create-repo
+        # 다음 step인 slack에 outcome 데이터를 제공해주기 위해 create-repo에 id를 지정한다. => success or failure 값을 반환
+        id: create-repo
         # 입력받은 inputs 값으로 레포를 만든다.
         run: |
           gh repo create seongjun-actions/${{ inputs.prefix }}-${{ inputs.name }} --public --add-readme
+
+      - name: slack
+        # if always()를 통해 이전 step이 성공하든, 실패하든 항상 실행
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          # This data can be any valid JSON from a previous step in the GitHub Action
+          # 위 step에서 정의한 id: create-repo로 create-repo step의 outcome 정보를 여기서 쓸 수 있다.
+          payload: |
+            {
+              "attachments": [
+                {
+                    "pretext": "create repo result",
+                    "color": "28a745",
+                    "fields": [
+                        {
+                            "title": "create repo result ${{ steps.create-repo.outcome }}",
+                            "short": true,
+                            "value": "${{ inputs.prefix }}-${{inputs.name}}"
+                        }
+                    ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
