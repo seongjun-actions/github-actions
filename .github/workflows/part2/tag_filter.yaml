@@ -1,0 +1,14 @@
+name: tag-filter
+on:
+  push:
+    tags:
+      # v1.0.0 or v2.2.2 같은 패턴으로 push할때 trigger될 것이다
+      # v2.0 or 1.1.0 포맷은 trigger되지 않을 것임
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  tag-filter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: echo
+        run: echo hello
