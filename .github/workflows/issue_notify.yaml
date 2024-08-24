@@ -41,7 +41,13 @@ jobs:
     if: needs.get-keyword.outputs.level != 'Undefined'
     runs-on: ubuntu-latest
     # get-keyword에서 만든 output을 environment로 사용하니까 slack job level에서도 같은 값을 사용하도록 설정한다.
-    environment: ${{ needs.get-keyword.outputs.level }}
+    # 이 environment 값은 keyword.outputs.level를 사용하며 깃허브에서 setting 탭에 설정했던 environment를 가져오도록 할 것이다.
+    # 아래 slack step의 env에서 사용한 secrets.SLACK_WEBHOOK_URL는 이 environment가 어떤 값을 갖느냐에 따라 다른 SLACK_WEBHOOK_URL을 가질 것이다(critical or normal)
+    # environment: ${{ needs.get-keyword.outputs.level }}
+    strategy:
+      matrix:
+        environment: ["${{ needs.get-keyword.outputs.level }}"]
+    environment: ${{ matrix.environment }}
     # level이 어떤 값(critical or normal)인지 title로, issue의 주소를 value로 설정한다.
     steps:
       - name: slack
