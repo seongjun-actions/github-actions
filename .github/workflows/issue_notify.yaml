@@ -33,3 +33,35 @@ jobs:
       - name: get output
         run: |
           echo ${{ steps.get-keyword.outputs.level }}
+
+  slack:
+    # get-keyword job이 실행된 후에 이 slack job이 실행되어야 하므로 needs 커맨드로 종속성을 검
+    needs: [get-keyword]
+    # slack job의 경우 critical, normal일 때만 실행되어야 하므로 if 조건을 걸었다.
+    if: needs.get-keyword.outputs.level != 'Undefined'
+    runs-on: ubuntu-latest
+    # get-keyword에서 만든 output을 environment로 사용하니까 slack job level에서도 같은 값을 사용하도록 설정한다.
+    environment: ${{ needs.get-keyword.outputs.level }}
+    # level이 어떤 값(critical or normal)인지 title로, issue의 주소를 value로 설정한다.
+    steps:
+      - name: slack
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+                "attachments": [
+                    {
+                        "pretext": "issue alert message",
+                        "color": "28a745",
+                        "fields": [
+                            {
+                                "title": "Level: ${{ needs.get-keyword.outputs.level }}",
+                                "short": true,
+                                "value": "issue url : ${{ github.event.issue.html_url }}"
+                            }
+                        ]
+                    }
+                ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
