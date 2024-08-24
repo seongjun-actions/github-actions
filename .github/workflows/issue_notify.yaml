@@ -1,0 +1,35 @@
+name: issue-notify
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  get-keyword:
+    runs-on: ubuntu-latest
+    outputs:
+      level: ${{ steps.get-keyword.outputs.level }}
+    steps:
+      # 첫 번째 스텝으로 checkout을 통해 깃허브 레포 코드를 깃허브 job으로 가져온다
+      - name: checkout
+        uses: actions/checkout@v4
+      # 두 번째 스텝인 get keyword에서는 level에 undefined값을 선언값으로 부여하고 output값으로 설정했다.
+      # 그리고 keywords라는 변수에 checkout을 통해 깃허브 레포에서 가져온 keyword-list.txt를 cat한 내용을 할당한다.
+      # github.event.issue.title는 이슈의 이름을 나타낸다. 반복문을 실행하면서 이슈 이름이 keyword와 같다면 그 값을 output으로 구성한다
+      # 그리고 이 output을 다른 job에서도 사용할 수 있도록 위 10번째 줄의 job level에서 output을 구성했다.
+      - name: get keyword
+        id: get-keyword
+        run: |
+          echo level=Undefined >> $GITHUB_OUTPUT
+
+          keywords=$(cat keyword-list.txt)
+          for keyword in $keywords; do
+              if [[ "${{ github.event.issue.title }}" =~ "$keyword" ]]; then
+                  echo level=$keyword >> $GITHUB_OUTPUT
+              fi
+          done
+      # output값인 level을 출력한다.
+      # 이렇게 구성한다면 keyword-list.txt에 없는 이슈 이름으로 이슈를 생성한다면 undefined가 출력이 될 것이다.
+      # keyword-list.txt에 있는 이슈 이름(critical, normal)이 포함되어 있다면 그 키워드가 출력될 것이다.
+      - name: get output
+        run: |
+          echo ${{ steps.get-keyword.outputs.level }}
