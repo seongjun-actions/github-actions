@@ -15,9 +15,8 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          I am learning github action cache
-          <br />
-          and this file content is changed
+          I am learning github action 시나리오1 I am also checking workflow
+          trigger when I synchronized PR
         </a>
       </header>
     </div>
