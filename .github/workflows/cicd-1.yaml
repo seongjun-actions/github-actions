@@ -1,0 +1,35 @@
+name: cicd-1
+on:
+  pull_request:
+    # PR이 오픈(=opened)되거나, 동기화(=synchronize)될 때 CI(테스트)가 실행되도록 세팅, PR이 머지(=closed)되면 CD(빌드/배포)가 실행되도록 세팅
+    types: [opened, synchronize, closed]
+    # branch 필터는 dev로 세팅. dev branch에 PR event가 발생할 때만 깃허브액션 workflow가 trigger됨
+    branches: [dev]
+    # paths 필터는 "my-app/" 디렉토리에 속한 모든 디렉토리, 파일에 변경사항이 있을 때 깃허브액션 workflow가 trigger됨
+    paths:
+      - "my-app/**"
+
+jobs:
+  # test job은 PR이 오픈되거나 동기화되었을 때 실행되는 CI(테스트) 관련 job이다.
+  test:
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+  # image-build job은 PR이 머지되면 실행되는 CD 관련 job이다.
+  image-build:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+  # deploy job은 image-build job이 성공했을 때 종속적으로(needs) 실행되는 CD 관련 job이다.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [image-build]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
