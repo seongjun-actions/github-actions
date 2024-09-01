@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# 이 스크립트는 EKS를 구성하기 위해 필요한 커맨드를 설치하는 내용이 담겨있다.
+
 # aws sts get-caller-identity
 # chmod +x ./init.sh 
 
