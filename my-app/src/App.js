@@ -16,7 +16,7 @@ function App() {
           rel="noopener noreferrer"
         >
           I am deploying 시나리오1 by full workflow with AWS EKS and it will be
-          sending slack message
+          sending slack message!
         </a>
       </header>
     </div>
