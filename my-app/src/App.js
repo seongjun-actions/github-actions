@@ -15,8 +15,8 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          I am learning github action 시나리오1 I am also checking workflow
-          trigger when I synchronized PR
+          I am deploying 시나리오1 by full workflow with AWS EKS and it will be
+          sending slack message
         </a>
       </header>
     </div>
