@@ -96,7 +96,7 @@ jobs:
       # AWS 권한을 얻기 위해 aws action을 사용한다. 이 때 aws에 access하기 위한 정보(region, role)를 with로 전달했다.
       - name: Configure AWS Credentials
         id: credentials
-        uses: aws-actions/configure-aws-credential@v4
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
