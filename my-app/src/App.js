@@ -15,8 +15,7 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          I am deploying 시나리오1 by full workflow with AWS EKS and it will be
-          sending slack message!
+          cicd2.yaml test
         </a>
       </header>
     </div>
