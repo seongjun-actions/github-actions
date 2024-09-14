@@ -15,7 +15,7 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          cicd2.yaml test
+          test 시나리오2 with AWS EKS
         </a>
       </header>
     </div>
