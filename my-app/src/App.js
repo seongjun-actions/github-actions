@@ -15,7 +15,7 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          test 시나리오3
+          test 시나리오3!!
         </a>
       </header>
     </div>
