@@ -20,31 +20,31 @@ jobs:
         uses: actions/checkout@v4
 
       # setup-node action으로 18 버전의 nodejs를 설치한다.
-    #   - name: setup-node
-    #     uses: actions/setup-node@v3
-    #     with:
-    #       node-version: 18
+      - name: setup-node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    #   # cache action을 사용한다.
-    #   - name: Cache Node.js modules
-    #     uses: actions/cache@v3
-    #     with:
-    #       path: ~/.npm
-    #       key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-    #       restore-keys: |
-    #         ${{ runner.os }}-node-
+      # cache action을 사용한다.
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
-    #   # npm ci로 dependencies를 설치한다.
-    #   - name: Install dependencies
-    #     run: |
-    #       cd my-app
-    #       npm ci
+      # npm ci로 dependencies를 설치한다.
+      - name: Install dependencies
+        run: |
+          cd my-app
+          npm ci
 
-    #   # 마지막으로 빌드한다.
-    #   - name: npm build
-    #     run: |
-    #       cd my-app
-    #       npm run build
+      # 마지막으로 빌드한다.
+      - name: npm build
+        run: |
+          cd my-app
+          npm run build
 
   set-environment:
     # 현재의 배포 환경을 알아내야 하는 job이니, 배포하는 시점에 실행되어야 하므로 merged가 되고나서 job을 실행한다.
@@ -93,26 +93,26 @@ jobs:
         uses: actions/checkout@v4
 
       # AWS 권한을 얻기 위해 aws action을 사용한다. 이 때 aws에 access하기 위한 정보(region, role)를 with로 전달했다.
-    #   - name: Configure AWS Credentials
-    #     id: credentials
-    #     uses: aws-actions/configure-aws-credentials@v4
-    #     with:
-    #       aws-region: ${{ vars.AWS_REGION }} # region은 환경변수로,
-    #       role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }} # role은 secret으로 지정
+      - name: Configure AWS Credentials
+        id: credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.AWS_REGION }} # region은 환경변수로,
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }} # role은 secret으로 지정
 
-    #   # AWS ECR에 접근하기 위해 aws ecr login action을 사용한다.
-    #   - name: Login to Amazon ECR
-    #     id: login-ecr
-    #     uses: aws-actions/amazon-ecr-login@v2
-    #     with:
-    #       mask-password: "true"
+      # AWS ECR에 접근하기 위해 aws ecr login action을 사용한다.
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: "true"
 
-    #   # docker 커맨드를 사용해서 애플리케이션을 image로 만들고, 해당 이미지를 ECR로 push한다.
-    #   # ECR에 push하기 위해 필요한 정보인 registry는 민감정보이기에 secret으로, repository는 환경변수로 지정함
-    #   - name: docker build & push
-    #     run: |
-    #       docker build -f Dockerfile --tag ${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}:${{ github.sha }} .
-    #       docker push ${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}:${{ github.sha }}
+      # docker 커맨드를 사용해서 애플리케이션을 image로 만들고, 해당 이미지를 ECR로 push한다.
+      # ECR에 push하기 위해 필요한 정보인 registry는 민감정보이기에 secret으로, repository는 환경변수로 지정함
+      - name: docker build & push
+        run: |
+          docker build -f Dockerfile --tag ${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}:${{ github.sha }} .
+          docker push ${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}:${{ github.sha }}
 
   # deploy job은 image-build job이 성공했을 때 종속적으로(needs) 실행되는 CD 관련 job이다.
   deploy:
@@ -132,70 +132,70 @@ jobs:
         uses: actions/checkout@v4
 
       # AWS 권한을 얻기 위해 aws action을 사용한다. 이 때 aws에 access하기 위한 정보(region, role)를 with로 전달했다.
-    #   - name: Configure AWS Credentials
-    #     id: credentials
-    #     uses: aws-actions/configure-aws-credentials@v4
-    #     with:
-    #       aws-region: ${{ vars.AWS_REGION }}
-    #       role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      - name: Configure AWS Credentials
+        id: credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
-    #   # 쿠버네티스를 사용하기 위해 kubectl를 설치한다.
-    #   - name: setup kubectl
-    #     uses: azure/setup-kubectl@v3
-    #     with:
-    #       version: latest
+      # 쿠버네티스를 사용하기 위해 kubectl를 설치한다.
+      - name: setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: latest
 
-    #   # helm을 사용하기 위해 helm을 설치한다.
-    #   - name: setup helm
-    #     uses: azure/setup-helm@v3
-    #     with:
-    #       version: v3.11.1
+      # helm을 사용하기 위해 helm을 설치한다.
+      - name: setup helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.11.1
 
-    #   # aws eks에 접근하는 커맨드를 사용한다. 이 과정에서 쿠버네티스 cluster 이름이 필요하기에 환경변수로 넣어준다
-    #   # 이 step이 완료되면 지정된 cluster에 접근할 수 있다.
-    #   - name: access kubernetes
-    #     run: |
-    #       aws eks update-kubeconfig --name ${{ vars.CLUSTER_NAME }}
+      # aws eks에 접근하는 커맨드를 사용한다. 이 과정에서 쿠버네티스 cluster 이름이 필요하기에 환경변수로 넣어준다
+      # 이 step이 완료되면 지정된 cluster에 접근할 수 있다.
+      - name: access kubernetes
+        run: |
+          aws eks update-kubeconfig --name ${{ vars.CLUSTER_NAME }}
 
-    #   # helm 커맨드를 사용해서 접근한 쿠버네티스 cluster에 배포한다.
-    #   - name: deploy
-    #     # id라는 커맨드를 사용한 이유는 아래 slack step에 사용하기 위함
-    #     id: status
-    #     # helm upgrade --install my-app는 쿠버네티스 cluster에 my-app이라는 이름으로 어플리케이션을 배포하게 된다.
-    #     # 이 명령어는 이미 my-app이라는 이름이 존재하는 경우에는 upgrade를 하고, 아니면 새로 설치를 수행한다.
-    #     # "kubernetes/my-app" 는 해당 helm chart의 위치를 나타낸다. helm커맨드 사용을 위해서는 helm chart가 필요하다. helm chart는 쿠버네티스에 배포할 리소스들의 집합이라고 보면 된다.
-    #     # --create-namespace 옵션은 지정된 namespace가 존재하지 않을 때 새로운 namespace를 생성한다.
-    #     # --namespace my-app-${{ vars.SUFFIX }}는 배포할 쿠버네티스 namespace를 지정한다. SUFFIX는 환경변수로 들어간다.
-    #     # --set image.tag=${{ github.sha }}는 이미지의 태그를 현재 깃허브 커밋의 해시값(sha)으로 설정한다.
-    #     # --set image.repository=${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}는 이미지의 저장소를 지정한다.
-    #     # 파라미터 값으로 이미지 태그와 이미지 레포지토리 값을 전달하면 ECR에 push되었던 이미지를 바탕으로 애플리케이션이 배포된다.
-    #     # 요약: helm 커맨드를 사용해서 image-build job에서 생성했던 이미지를 바탕으로 쿠버네티스에 배포한다.
-    #     run: |
-    #       helm upgrade --install my-app kubernetes/my-app --create-namespace --namespace my-app-${{ vars.SUFFIX }} \
-    #       --set image.tag=${{ github.sha }} \
-    #       --set image.repository=${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}
+      # helm 커맨드를 사용해서 접근한 쿠버네티스 cluster에 배포한다.
+      - name: deploy
+        # id라는 커맨드를 사용한 이유는 아래 slack step에 사용하기 위함
+        id: status
+        # helm upgrade --install my-app는 쿠버네티스 cluster에 my-app이라는 이름으로 어플리케이션을 배포하게 된다.
+        # 이 명령어는 이미 my-app이라는 이름이 존재하는 경우에는 upgrade를 하고, 아니면 새로 설치를 수행한다.
+        # "kubernetes/my-app" 는 해당 helm chart의 위치를 나타낸다. helm커맨드 사용을 위해서는 helm chart가 필요하다. helm chart는 쿠버네티스에 배포할 리소스들의 집합이라고 보면 된다.
+        # --create-namespace 옵션은 지정된 namespace가 존재하지 않을 때 새로운 namespace를 생성한다.
+        # --namespace my-app-${{ vars.SUFFIX }}는 배포할 쿠버네티스 namespace를 지정한다. SUFFIX는 환경변수로 들어간다.
+        # --set image.tag=${{ github.sha }}는 이미지의 태그를 현재 깃허브 커밋의 해시값(sha)으로 설정한다.
+        # --set image.repository=${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}는 이미지의 저장소를 지정한다.
+        # 파라미터 값으로 이미지 태그와 이미지 레포지토리 값을 전달하면 ECR에 push되었던 이미지를 바탕으로 애플리케이션이 배포된다.
+        # 요약: helm 커맨드를 사용해서 image-build job에서 생성했던 이미지를 바탕으로 쿠버네티스에 배포한다.
+        run: |
+          helm upgrade --install my-app kubernetes/my-app --create-namespace --namespace my-app-${{ vars.SUFFIX }} \
+          --set image.tag=${{ github.sha }} \
+          --set image.repository=${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}
 
-    #   # 배포 결과를 slack으로 채널에 메시지를 쏜다. if: always()를 통해 위 step의 성공/실패에 상관없이 무조건 실행한다.
-    #   - name: notify
-    #     if: always()
-    #     uses: slackapi/slack-github-action@v1.24.0
-    #     with:
-    #       payload: |
-    #         {
-    #           "text": "message",
-    #           "blocks": [
-    #             {
-    #                 "type": "section",
-    #                 "text": {
-    #                     "type": "mrkdwn",
-    #                     "text": "Environment: ${{ needs.set-environment.outputs.environment }}, Deploy Result : ${{ steps.status.outcome }}, Repository : ${{ github.repository }}."
-    #                 }
-    #             }
-    #           ]
-    #         }
-    #     env:
-    #       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-    #       SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+      # 배포 결과를 slack으로 채널에 메시지를 쏜다. if: always()를 통해 위 step의 성공/실패에 상관없이 무조건 실행한다.
+      - name: notify
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "message",
+              "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Environment: ${{ needs.set-environment.outputs.environment }}, Deploy Result : ${{ steps.status.outcome }}, Repository : ${{ github.repository }}."
+                    }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
   # 운영환경(prod)에 deploy가 성공했을 때는 이 create-pr job이 실행될 필요가 없으므로 개발환경(dev)에 deploy하는 경우에만 실행하도록 if를 설정한다.
   create-pr:
