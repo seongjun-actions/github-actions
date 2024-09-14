@@ -15,7 +15,8 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          test 시나리오3!!
+          test 시나리오3!! 원격 레포에서 release를 통해 tag를 만들어서
+          테스트해볼 것임
         </a>
       </header>
     </div>
