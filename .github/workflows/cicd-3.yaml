@@ -1,0 +1,241 @@
+name: cicd-3
+on:
+  # tag는 push로만 trigger할 수 있으니까 push event를 사용한다.
+  push:
+    # paths 필터는 "my-app/" 디렉토리에 속한 모든 디렉토리, 파일에 변경사항이 있을 때 깃허브액션 workflow가 trigger됨
+    paths:
+      - "my-app/**"
+    # tag 필터로 v@.@.@ 포맷만 허용한다.
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  pull_request:
+    # PR이 오픈(=opened)되거나, 동기화(=synchronize)될 때 CI(테스트)가 실행되도록 세팅, PR이 머지(=closed)되면 CD(빌드/배포)가 실행되도록 세팅
+    types: [opened, synchronize, closed]
+    # branch 필터는 dev, master로 세팅. dev, master branch에 PR event가 발생할 때만 깃허브액션 workflow가 trigger됨
+    branches: [dev, master]
+    # paths 필터는 "my-app/" 디렉토리에 속한 모든 디렉토리, 파일에 변경사항이 있을 때 깃허브액션 workflow가 trigger됨
+    paths:
+      - "my-app/**"
+
+jobs:
+  # test job은 PR이 오픈되거나 동기화되었을 때 실행되는 CI(테스트) 관련 job이다.
+  test:
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    steps:
+      # checkout action으로 github code를 가져온다.
+      - name: checkout the code
+        uses: actions/checkout@v4
+
+    #   # setup-node action으로 18 버전의 nodejs를 설치한다.
+    #   - name: setup-node
+    #     uses: actions/setup-node@v3
+    #     with:
+    #       node-version: 18
+
+    #   # cache action을 사용한다.
+    #   - name: Cache Node.js modules
+    #     uses: actions/cache@v3
+    #     with:
+    #       path: ~/.npm
+    #       key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+    #       restore-keys: |
+    #         ${{ runner.os }}-node-
+
+    #   # npm ci로 dependencies를 설치한다.
+    #   - name: Install dependencies
+    #     run: |
+    #       cd my-app
+    #       npm ci
+
+    #   # 마지막으로 빌드한다.
+    #   - name: npm build
+    #     run: |
+    #       cd my-app
+    #       npm run build
+
+  set-environment:
+    # 현재의 배포 환경을 알아내야 하는 job이니, 배포하는 시점에 실행되어야 하므로 merged가 되거나, tag push에 의해 event가 trigger된 경우에만 (QA환경에 배포하는건지 알아내기 위해) job을 실행한다.
+    if: github.event.pull_request.merged == true || github.ref_type =='tag'
+    runs-on: ubuntu-latest
+
+    # 아래 스텝에서 설정한 output을 다른 job에서 사용할 수 있도록 job-level에서 output을 설정했다.
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+    steps:
+      # 1번째 스텝은 PR의 ref_type이 branch인 경우 dev branch로 merge되면 개발환경으로 배포, PR이 master branch로 merge되면 운영환경으로 배포, ref_type이 tag라면 QA환경으로 배포해야 됨
+      # 이를 판단하기 위해 github.base_ref와 github.ref_type를 사용한다
+      # github.base_ref는 깃허브 컨텍스트로 PR의 타겟 branch의 이름을 의미한다.
+      # ex) feature branch -> dev branch로 PR을 올린 경우 github.base_ref의 값은 dev이다.
+      # environment의 기본값으로 dev라는 output를 구성하고, 만약 base_ref가 master라면 environment는 prod라는 output을 구성하고, ref_type이 tag라면 environment는 qa라는 output을 구성한다.
+      # feature 브랜치에서 dev 브랜치로 PR이 머지되면 output은 dev이고, dev 브랜치에서 master 브랜치로 PR이 머지되면 output은 prod 이다.
+      # tag가 push되었다면 output은 qa이다.
+      # 그리고 이 output을 사용할 수 있도록 "id: set-env"로 id 설정을 했다.
+      - name: set env
+        id: set-env
+        run: |
+          if [[ ${{ github.ref_type }} == "tag" ]]; then
+            echo "environment=qa" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [[ ${{ github.ref_type }} == "branch" ]]; then
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            if [[ ${{ github.base_ref }} == "master" ]]; then
+                echo "environment=prod" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      # 2번째 스텝에서는 설정한 output을 출력하는 커맨드이다.
+      - name: check env
+        run: echo ${{ steps.set-env.outputs.environment }}
+
+  # image-build job은 PR이 머지되면 실행되는 CD 관련 job이다.
+  image-build:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    needs: [set-environment]
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        environment: ["${{ needs.set-environment.outputs.environment }}"]
+    environment: ${{ matrix.environment }}
+    steps:
+      # checkout action으로 github code를 가져온다.
+      - name: checkout the code
+        uses: actions/checkout@v4
+
+    #   # AWS 권한을 얻기 위해 aws action을 사용한다. 이 때 aws에 access하기 위한 정보(region, role)를 with로 전달했다.
+    #   - name: Configure AWS Credentials
+    #     id: credentials
+    #     uses: aws-actions/configure-aws-credentials@v4
+    #     with:
+    #       aws-region: ${{ vars.AWS_REGION }} # region은 환경변수로,
+    #       role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }} # role은 secret으로 지정
+
+    #   # AWS ECR에 접근하기 위해 aws ecr login action을 사용한다.
+    #   - name: Login to Amazon ECR
+    #     id: login-ecr
+    #     uses: aws-actions/amazon-ecr-login@v2
+    #     with:
+    #       mask-password: "true"
+
+    #   # docker 커맨드를 사용해서 애플리케이션을 image로 만들고, 해당 이미지를 ECR로 push한다.
+    #   # ECR에 push하기 위해 필요한 정보인 registry는 민감정보이기에 secret으로, repository는 환경변수로 지정함
+    #   - name: docker build & push
+    #     run: |
+    #       docker build -f Dockerfile --tag ${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}:${{ github.sha }} .
+    #       docker push ${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}:${{ github.sha }}
+
+  # deploy job은 image-build job이 성공했을 때 종속적으로(needs) 실행되는 CD 관련 job이다.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [set-environment, image-build]
+    # deploy job도 image-build job과 마찬가지로 aws에 접근해야 하기에 permissions 설정을 한다.
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        environment: ["${{ needs.set-environment.outputs.environment }}"]
+    environment: ${{ matrix.environment }}
+    steps:
+      # checkout action으로 github code를 가져온다.
+      - name: checkout the code
+        uses: actions/checkout@v4
+
+    #   # AWS 권한을 얻기 위해 aws action을 사용한다. 이 때 aws에 access하기 위한 정보(region, role)를 with로 전달했다.
+    #   - name: Configure AWS Credentials
+    #     id: credentials
+    #     uses: aws-actions/configure-aws-credentials@v4
+    #     with:
+    #       aws-region: ${{ vars.AWS_REGION }}
+    #       role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+    #   # 쿠버네티스를 사용하기 위해 kubectl를 설치한다.
+    #   - name: setup kubectl
+    #     uses: azure/setup-kubectl@v3
+    #     with:
+    #       version: latest
+
+    #   # helm을 사용하기 위해 helm을 설치한다.
+    #   - name: setup helm
+    #     uses: azure/setup-helm@v3
+    #     with:
+    #       version: v3.11.1
+
+    #   # aws eks에 접근하는 커맨드를 사용한다. 이 과정에서 쿠버네티스 cluster 이름이 필요하기에 환경변수로 넣어준다
+    #   # 이 step이 완료되면 지정된 cluster에 접근할 수 있다.
+    #   - name: access kubernetes
+    #     run: |
+    #       aws eks update-kubeconfig --name ${{ vars.CLUSTER_NAME }}
+
+    #   # helm 커맨드를 사용해서 접근한 쿠버네티스 cluster에 배포한다.
+    #   - name: deploy
+    #     # id라는 커맨드를 사용한 이유는 아래 slack step에 사용하기 위함
+    #     id: status
+    #     # helm upgrade --install my-app는 쿠버네티스 cluster에 my-app이라는 이름으로 어플리케이션을 배포하게 된다.
+    #     # 이 명령어는 이미 my-app이라는 이름이 존재하는 경우에는 upgrade를 하고, 아니면 새로 설치를 수행한다.
+    #     # "kubernetes/my-app" 는 해당 helm chart의 위치를 나타낸다. helm커맨드 사용을 위해서는 helm chart가 필요하다. helm chart는 쿠버네티스에 배포할 리소스들의 집합이라고 보면 된다.
+    #     # --create-namespace 옵션은 지정된 namespace가 존재하지 않을 때 새로운 namespace를 생성한다.
+    #     # --namespace my-app-${{ vars.SUFFIX }}는 배포할 쿠버네티스 namespace를 지정한다. SUFFIX는 환경변수로 들어간다.
+    #     # --set image.tag=${{ github.sha }}는 이미지의 태그를 현재 깃허브 커밋의 해시값(sha)으로 설정한다.
+    #     # --set image.repository=${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}는 이미지의 저장소를 지정한다.
+    #     # 파라미터 값으로 이미지 태그와 이미지 레포지토리 값을 전달하면 ECR에 push되었던 이미지를 바탕으로 애플리케이션이 배포된다.
+    #     # 요약: helm 커맨드를 사용해서 image-build job에서 생성했던 이미지를 바탕으로 쿠버네티스에 배포한다.
+    #     run: |
+    #       helm upgrade --install my-app kubernetes/my-app --create-namespace --namespace my-app-${{ vars.SUFFIX }} \
+    #       --set image.tag=${{ github.sha }} \
+    #       --set image.repository=${{ secrets.REGISTRY }}/${{ vars.REPOSITORY }}
+
+    #   # 배포 결과를 slack으로 채널에 메시지를 쏜다. if: always()를 통해 위 step의 성공/실패에 상관없이 무조건 실행한다.
+    #   - name: notify
+    #     if: always()
+    #     uses: slackapi/slack-github-action@v1.24.0
+    #     with:
+    #       payload: |
+    #         {
+    #           "text": "message",
+    #           "blocks": [
+    #             {
+    #                 "type": "section",
+    #                 "text": {
+    #                     "type": "mrkdwn",
+    #                     "text": "Environment: ${{ needs.set-environment.outputs.environment }}, Deploy Result : ${{ steps.status.outcome }}, Repository : ${{ github.repository }}."
+    #                 }
+    #             }
+    #           ]
+    #         }
+    #     env:
+    #       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    #       SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  # QA환경(qa) 배포에 성공한 경우에(운영환경에 반영할 수 있도록)만 실행하도록 if를 설정한다.
+  create-pr:
+    if: needs.set-environment.outputs.environment == 'qa'
+    runs-on: ubuntu-latest
+    # 배포 환경 파악 job + deploy job이 성공했을 때 실행되어야 하므로 needs 커맨드를 사용한다.
+    needs: [set-environment, deploy]
+    steps:
+      # 깃허브 레포의 코드를 가져온다
+      - name: checkout
+        uses: actions/checkout@v4
+
+      # 깃 권한을 사용할 수 있도록 PERSONAL_ACCESS_TOKEN로 로그인한다. (PR을 생성하기 위해 깃 권한 필요)
+      - name: gh auth login
+        run: |
+          echo ${{ secrets.PERSONAL_ACCESS_TOKEN }} | gh auth login --with-token
+
+      # 배포와 동시에 같은 커밋 히스토리를 가진 release/{tag} 브랜치를 만들고 원격 브랜치에도 push한다.
+      # ref_name은 브랜치명/태그명 값이 될 것인데, 여기서 이 job은 QA환경 배포에 성공한 경우에 돌 것이므로 태그명이 될 것이다.
+      - name: create branch
+        run: |
+          git checkout -b release/${{ github.ref_name }}
+          git push origin release/${{ github.ref_name }}
+
+      # gh cli를 사용해서 3번째 step에서 만든 release/{tag} 브랜치에서 master 브랜치로 PR을 만든다.
+      - name: create pr
+        run: |
+          gh pr create --base master --head release/${{ github.ref_name }} --title "release/${{ github.ref_name }} -> master" --body "release pr"
