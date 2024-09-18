@@ -15,7 +15,7 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          test 시나리오4 cicd in AWS EKS
+          test 시나리오6 cicd in AWS EKS
         </a>
       </header>
     </div>
